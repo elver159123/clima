@@ -16,22 +16,24 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Clima"
         tools:targetApi="31">
+
+        <!-- Declarar SplashActivity como la actividad principal -->
         <activity
             android:name=".SplashActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.sigfred.clima.SplashActivity"
+            android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:label="@string/app_name"
-            android:launchMode="singleTask"/>
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- MainActivity ya no necesita el filtro LAUNCHER -->
         <activity
             android:name=".Activitis.MainActivity"
             android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
     </application>
 
