@@ -15,12 +15,17 @@ import com.sigfred.clima.R;
 import java.util.ArrayList;
 
 public class HourlyAdapters extends RecyclerView.Adapter<HourlyAdapters.ViewHolder> {
-    private final ArrayList<Hourly> items;
+    private ArrayList<Hourly> items;
     private final Context context;
 
     public HourlyAdapters(ArrayList<Hourly> items, Context context) {
         this.items = items;
         this.context = context;
+    }
+
+    public void updateData(ArrayList<Hourly> newItems) {
+        this.items = newItems;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -37,8 +42,7 @@ public class HourlyAdapters extends RecyclerView.Adapter<HourlyAdapters.ViewHold
         holder.tempTxt.setText(item.getTemp() + "°");
 
         int drawableResourceId = holder.itemView.getResources()
-                .getIdentifier(items.get(position).getPicPath(), "drawable", holder.itemView.getContext().getPackageName());
-
+                .getIdentifier(item.getPicPath(), "drawable", holder.itemView.getContext().getPackageName());
 
         Glide.with(context)
                 .load(drawableResourceId)

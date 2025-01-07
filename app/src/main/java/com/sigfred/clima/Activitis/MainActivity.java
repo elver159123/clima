@@ -7,11 +7,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -41,6 +43,9 @@ public class MainActivity extends AppCompatActivity {
     private TextView dateText; // Para mostrar la fecha
     private TextView clockText; // Para mostrar el reloj
 
+    // Nuevos elementos de UI para lluvia, viento y humedad
+    private TextView rainText, rainDesc, windText, windDesc, humidityText, humidityDesc;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,9 +55,17 @@ public class MainActivity extends AppCompatActivity {
         dateText = findViewById(R.id.dateText);
         clockText = findViewById(R.id.clockText);
 
+        // Inicializar nuevos elementos de UI
+        rainText = findViewById(R.id.textViewRain);
+        rainDesc = findViewById(R.id.textViewRainDesc);
+        windText = findViewById(R.id.textViewWind);
+        windDesc = findViewById(R.id.textViewWindDesc);
+        humidityText = findViewById(R.id.textViewHumidity);
+        humidityDesc = findViewById(R.id.textViewHumidityDesc);
+
         // Actualizar la fecha y hora
-        updateDate(); // Inicializa la actualización en tiempo real de la fecha
-        updateClock(); // Inicializa la actualización en tiempo real del reloj
+        updateDate();
+        updateClock();
 
         // Inicializar RecyclerView
         initRecyclerview();
@@ -60,11 +73,16 @@ public class MainActivity extends AppCompatActivity {
         // Obtener la ubicación y el clima
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         requestLocationPermissionAndFetchWeather();
+
+        // Inicia la actualización del clima en tiempo real
+        scheduleWeatherUpdates();
     }
 
     private void initRecyclerview() {
         recyclerView = findViewById(R.id.view1);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        adapterHourly = new HourlyAdapters(new ArrayList<>(), this);
+        recyclerView.setAdapter(adapterHourly);
     }
 
     private void requestLocationPermissionAndFetchWeather() {
@@ -120,13 +138,36 @@ public class MainActivity extends AppCompatActivity {
     private void updateUI(WeatherResponse weather) {
         ArrayList<Hourly> items = new ArrayList<>();
 
-        String hora = "Ahora";
-        int temperatura = (int) weather.getMain().getTemp();
-        String icono = getIconFromWeatherCode(weather.getWeather().get(0).getIcon());
-        items.add(new Hourly(hora, temperatura, icono));
+        // Obtener la temperatura y el código de icono de clima
+        int temperatura = (int) Math.round(weather.getMain().getTemp());
+        String weatherIcon = getIconFromWeatherCode(weather.getWeather().get(0).getIcon());
 
-        adapterHourly = new HourlyAdapters(items, this);
-        recyclerView.setAdapter(adapterHourly);
+        // Agregar un nuevo objeto Hourly a la lista de items
+        items.add(new Hourly("Ahora", temperatura, weatherIcon));
+
+        // Actualizar el RecyclerView con los nuevos datos
+        if (adapterHourly instanceof HourlyAdapters) {
+            ((HourlyAdapters) adapterHourly).updateData(items);
+        }
+
+        // Actualizar la temperatura principal en la pantalla
+        TextView mainTemperatureTextView = findViewById(R.id.textView3);
+        mainTemperatureTextView.setText(String.format(Locale.getDefault(), "%d°", temperatura));
+
+        // Actualizar los nuevos elementos dinámicos (lluvia, viento y humedad)
+        if (weather.getRain() != null) {
+            rainText.setText(String.format(Locale.getDefault(), "%.1f mm", weather.getRain().getOneHour()));
+        } else {
+            rainText.setText("0 mm");
+        }
+
+        windText.setText(String.format(Locale.getDefault(), "%.1f km/h", weather.getWind().getSpeed())); // Usando la velocidad del viento
+        humidityText.setText(String.format(Locale.getDefault(), "%d%%", weather.getMain().getHumidity()));
+
+        // Agregar descripciones estáticas
+        rainDesc.setText("Lluvias");
+        windDesc.setText("Velocidad viento");
+        humidityDesc.setText("Humedad");
     }
 
     private String getIconFromWeatherCode(String weatherCode) {
@@ -151,46 +192,40 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Método para actualizar la fecha cada minuto
     private void updateDate() {
-        // Actualizar la fecha
-        String currentDate = getCurrentDate();
-        dateText.setText(currentDate);
-
-        // Ejecutar nuevamente el método cada minuto (60000 ms)
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                updateDate();
-            }
-        }, 60000);
-    }
-
-    private String getCurrentDate() {
-        // Asegúrate de usar el Locale en español
         SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, d MMMM yyyy", new Locale("es", "ES"));
-        return dateFormat.format(new Date());
+        String currentDate = dateFormat.format(new Date());
+        dateText.setText(currentDate);
     }
 
-    // Método para actualizar el reloj cada segundo
     private void updateClock() {
-        // Actualizar la hora
-        String currentTime = getCurrentTime();
-        clockText.setText(currentTime);
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+                String currentTime = timeFormat.format(new Date());
+                clockText.setText(currentTime);
 
-        // Ejecutar nuevamente el método cada segundo (1000 ms)
+                // Actualizar cada segundo
+                handler.postDelayed(this, 1000);
+            }
+        });
+    }
+
+    private void scheduleWeatherUpdates() {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                updateClock();
+                getCurrentLocation();
+                scheduleWeatherUpdates();
             }
-        }, 1000);
+        }, 3600000); // Actualización cada hora
     }
 
-    private String getCurrentTime() {
-        // Usamos un formato de hora con la hora, minuto y segundo
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", new Locale("es", "ES"));
-        return timeFormat.format(new Date());
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
     }
 
     @Override

@@ -1,11 +1,14 @@
 package com.sigfred.clima.Response;
 
 import java.util.List;
+import com.google.gson.annotations.SerializedName;
 
 public class WeatherResponse {
     private List<Weather> weather;
     private Main main;
     private String name;
+    private Rain rain; // Nuevo atributo para lluvia
+    private Wind wind; // Atributo para viento
 
     public List<Weather> getWeather() {
         return weather;
@@ -17,6 +20,14 @@ public class WeatherResponse {
 
     public String getName() {
         return name;
+    }
+
+    public Rain getRain() {
+        return rain;
+    }
+
+    public Wind getWind() {
+        return wind; // Método getter para el viento
     }
 
     public static class Weather {
@@ -67,6 +78,31 @@ public class WeatherResponse {
 
         public int getHumidity() {
             return humidity;
+        }
+    }
+
+    public static class Rain {
+        @SerializedName("1h")
+        private double oneHour;
+
+        public double getOneHour() {
+            return oneHour;
+        }
+
+        public void setOneHour(double oneHour) {
+            this.oneHour = oneHour;
+        }
+    }
+
+    public static class Wind {  // Nueva clase Wind
+        private float speed; // Velocidad del viento en km/h
+
+        public float getSpeed() {
+            return speed;
+        }
+
+        public void setSpeed(float speed) {
+            this.speed = speed;
         }
     }
 }
